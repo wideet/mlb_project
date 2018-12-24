@@ -71,6 +71,7 @@ def get_player_batting_df(year):
     df['Name'] = df['Name'] \
         .apply(lambda x: x.split('\\')[0]).replace('*', '').replace('#', '')
 
+    # only want 9 players who had the most plate appearances for that team
     roster_indices = list(df.groupby('Tm')['PA'].nlargest(9)
                           .reset_index()['level_1'].values)
     roster_df = df.iloc[roster_indices]
@@ -79,7 +80,7 @@ def get_player_batting_df(year):
     return roster_df
 
 
-def create_player_from_row(player_row):
+def create_player_from_row(player_row, year):
     player_name = player_row['Name']
     player_PA = player_row['PA']
     player_walks = player_row['BB'] + player_row['HBP'] + player_row['IBB']
@@ -88,11 +89,11 @@ def create_player_from_row(player_row):
     player_3B = player_row['3B']
     player_HR = player_row['HR']
     player_1B = player_hits - player_2B - player_3B - player_HR
-    assert (player_1B >= 0, "1B Calculation Error")
+    assert player_1B >= 0, "1B Calculation Error"
 
     return Player(
         name=player_name,
-        num_seasons=1,
+        seasons=[year],
         true_BA=player_hits / player_PA,
         perc_singles=player_1B / player_hits,
         perc_doubles=player_2B / player_hits,
@@ -100,6 +101,7 @@ def create_player_from_row(player_row):
         perc_HR=player_HR / player_hits,
         perc_walk=player_walks / player_PA
     )
+
 
 def update_player(curr_player, update_player):
     """
@@ -125,23 +127,24 @@ def update_player(curr_player, update_player):
 
     assert (curr_player.name == update_player.name, "player names do not match")
 
-    num_seasons = curr_player.num_seasons + update_player.num_seasons
-    true_BA = (curr_player.true_BA*curr_player.num_seasons +
-               update_player.true_BA*update_player.num_seasons) / num_seasons
-    perc_singles = (curr_player.perc_singles*curr_player.num_seasons +
-                    update_player.perc_singles*update_player.num_seasons) / num_seasons
-    perc_doubles = (curr_player.perc_doubles * curr_player.num_seasons +
-                    update_player.perc_doubles * update_player.num_seasons) / num_seasons
-    perc_triples = (curr_player.perc_triples * curr_player.num_seasons +
-                    update_player.perc_triples * update_player.num_seasons) / num_seasons
-    perc_HR = (curr_player.perc_HR * curr_player.num_seasons +
-               update_player.perc_HR * update_player.num_seasons) / num_seasons
-    perc_walk = (curr_player.perc_walk * curr_player.num_seasons +
-                  update_player.perc_walk * update_player.num_seasons) / num_seasons
+    num_seasons = max(
+        len(set(curr_player.seasons + update_player.seasons)), 1)
+    true_BA = (curr_player.true_BA*len(curr_player.seasons) +
+               update_player.true_BA*len(update_player.seasons)) / num_seasons
+    perc_singles = (curr_player.perc_singles*len(curr_player.seasons) +
+                    update_player.perc_singles*len(update_player.seasons)) / num_seasons
+    perc_doubles = (curr_player.perc_doubles * len(curr_player.seasons) +
+                    update_player.perc_doubles * len(update_player.seasons)) / num_seasons
+    perc_triples = (curr_player.perc_triples * len(curr_player.seasons) +
+                    update_player.perc_triples * len(update_player.seasons)) / num_seasons
+    perc_HR = (curr_player.perc_HR * len(curr_player.seasons) +
+               update_player.perc_HR * len(update_player.seasons)) / num_seasons
+    perc_walk = (curr_player.perc_walk * len(curr_player.seasons) +
+                  update_player.perc_walk * len(update_player.seasons)) / num_seasons
 
     return Player(
         name=curr_player.name,
-        num_seasons=num_seasons,
+        seasons=sorted(set(curr_player.seasons + update_player.seasons)),
         true_BA=true_BA,
         perc_singles=perc_singles,
         perc_doubles=perc_doubles,

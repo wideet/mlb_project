@@ -3,15 +3,15 @@ class Player:
     Player class that represents the key statistics for each player
     """
 
-    def __init__(self, name, num_seasons, true_BA, perc_singles, perc_doubles,
+    def __init__(self, name, seasons, true_BA, perc_singles, perc_doubles,
                  perc_triples, perc_HR, perc_walk):
         """
         Parameters
         ----------
         name: str
             player name
-        num_seasons: int
-            number of seasons recorded for player
+        seasons: list
+            list of seasons recorded for player
         true_BA: float
             batting average per plate appearance (not at-bat)
         perc_singles: float
@@ -26,13 +26,26 @@ class Player:
             percentage chance player is walked per plate appearance
         """
         self.name = name
-        self.num_seasons = num_seasons
+        self.seasons = seasons
         self.true_BA = true_BA
         self.perc_singles = perc_singles
         self.perc_doubles = perc_doubles
         self.perc_triples = perc_triples
         self.perc_HR = perc_HR
         self.perc_walk = perc_walk
+
+    def to_dict(self):
+        """Convert Player object to dictionary"""
+        return {
+            "name": self.name,
+            "seasons": self.seasons,
+            "true_BA": self.true_BA,
+            "perc_singles": self.perc_singles,
+            "perc_doubles": self.perc_doubles,
+            "perc_triples": self.perc_triples,
+            "perc_HR": self.perc_HR,
+            "perc_walk": self.perc_walk
+        }
 
 
 class Team:
@@ -62,6 +75,31 @@ class Team:
         self.games_played = games_played
         self.num_wins = num_wins
 
+    def add_player(self, p_dict, p_name):
+
+        if p_dict[p_name]:
+            self.lineup.append(p_dict[p_name])
+        else:
+            new_player = create_default_player(p_name, None)
+            self.lineup.append(new_player)
+
+    def sort_lineup(self, key_func=lambda x: x.true_BA):
+        """
+        Sort lineup by given attribute
+        Parameters
+        ----------
+        key_func: function
+            Lambda function that specifies attribute of Player object by which
+            to sort lineup
+
+        Returns
+        -------
+
+        """
+        self.lineup = sorted(self.lineup,
+                             key=key_func,
+                             reverse=True)
+
     def get_winning_percentage(self):
         return self.num_wins / self.games_played
 
@@ -69,7 +107,8 @@ class Team:
         self.lineup = new_lineup
 
     def print_record(self):
-        print(self.name, ': ', self.num_wins, '-', self.games_played - self.num_wins)
+        print(self.name, ': ', self.num_wins, '-',
+              self.games_played - self.num_wins)
 
 
 class Game:
@@ -166,8 +205,10 @@ class GameState:
         print('Second Base: ', self.base_ls[1])
         print('Third Base: ', self.base_ls[2])
 
-    def update_base_ls(self, first_base_status, second_base_status, third_base_status):
-        self.base_ls = [first_base_status, second_base_status, third_base_status]
+    def update_base_ls(self, first_base_status, second_base_status,
+                       third_base_status):
+        self.base_ls = [first_base_status, second_base_status,
+                        third_base_status]
 
     def update_state(self, event):
         """
@@ -225,3 +266,31 @@ class GameState:
             self.update_base_ls(True, self.base_ls[0], False)
 
         self.score.update_score(self.bottom, num_runs=num_runs)
+
+
+# Helper functions
+
+def create_default_player(name, default_val_dict):
+    """
+    Create a default player with the given name
+    Parameters
+    ----------
+    name: str
+        Player name
+
+    Returns
+    -------
+    Player
+        new Player object
+    """
+
+    return Player(
+        name=name,
+        seasons=[],
+        true_BA=.25,
+        perc_singles=.7,
+        perc_doubles=.1,
+        perc_triples=.05,
+        perc_HR=.15,
+        perc_walk=.1,
+    )

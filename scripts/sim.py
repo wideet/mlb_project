@@ -108,14 +108,16 @@ if __name__ == '__main__':
     n_iterations = 10
 
     team_wins_dict = defaultdict(lambda: 0, {})
-    training_years = {2017, 2018}
-    roster_year = 2017
+    training_years = {2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017}
+    roster_year = 2018
     schedule_year = 2018
     player_dict = defaultdict(lambda: None, {})
+    # TODO: as iterating over training years, get the default (avg) values for
+    #  every player parameters to be passed into the default player function
     for train_year in training_years:
         batting_df = get_player_batting_df(train_year)
         for index, row in batting_df.iterrows():
-            row_player = create_player_from_row(row)
+            row_player = create_player_from_row(row, train_year)
             # noinspection PyTypeChecker
             player_dict[row_player.name] = update_player(
                 player_dict[row_player.name], row_player)
@@ -127,11 +129,11 @@ if __name__ == '__main__':
         player_name = row['Name']
         if player_team not in team_dict:
             team_dict[player_team] = Team(player_team)
-        team_dict[player_team].lineup.append(player_dict[player_name])
+        team_dict[player_team].add_player(player_dict, player_name)
 
     # sort lineups by .... true_BA?
-
-    #####
+    for team, value in team_dict.items():
+        value.sort_lineup()
 
     _, schedule = get_schedule(schedule_year)
     mod_schedule = []
