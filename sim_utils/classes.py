@@ -34,6 +34,33 @@ class Player:
         self.perc_HR = perc_HR
         self.perc_walk = perc_walk
 
+        # track stats for the current simulation
+        self.curr_sim = {
+            "PA": 0,
+            "H": 0,
+            "1B": 0,
+            "2B": 0,
+            "3B": 0,
+            "HR": 0,
+            "BB": 0
+        }
+
+    def update_curr_sim_stats(self, PA_result):
+        self.curr_sim['PA'] += 1
+        if PA_result != "out":
+            if PA_result == "walk":
+                self.curr_sim['BB'] += 1
+            else:
+                self.curr_sim['H'] += 1
+                if PA_result == 1:
+                    self.curr_sim['1B'] += 1
+                if PA_result == 2:
+                    self.curr_sim['2B'] += 1
+                if PA_result == 3:
+                    self.curr_sim['3B'] += 1
+                if PA_result == 4:
+                    self.curr_sim['HR'] += 1
+
     def to_dict(self):
         """Convert Player object to dictionary"""
         return {
@@ -75,12 +102,12 @@ class Team:
         self.games_played = games_played
         self.num_wins = num_wins
 
-    def add_player(self, p_dict, p_name):
+    def add_player(self, p_dict, p_name, def_dict):
 
         if p_dict[p_name]:
             self.lineup.append(p_dict[p_name])
         else:
-            new_player = create_default_player(p_name, None)
+            new_player = create_default_player(p_name, def_dict)
             self.lineup.append(new_player)
 
     def sort_lineup(self, key_func=lambda x: x.true_BA):
@@ -132,6 +159,10 @@ class Game:
     def print_game_score(self):
         print(self.away_team.name, ': ', self.game_state.score.away_team_score)
         print(self.home_team.name, ': ', self.game_state.score.home_team_score)
+
+    def reset(self):
+        self.game_state.reset()
+
 
 
 class Score:
@@ -204,6 +235,13 @@ class GameState:
         print('First Base: ', self.base_ls[0])
         print('Second Base: ', self.base_ls[1])
         print('Third Base: ', self.base_ls[2])
+
+    def reset(self):
+        self.inning = 1
+        self.bottom = False
+        self.outs = 0
+        self.score = Score()
+        self.base_ls = [False] * 3
 
     def update_base_ls(self, first_base_status, second_base_status,
                        third_base_status):
@@ -283,14 +321,13 @@ def create_default_player(name, default_val_dict):
     Player
         new Player object
     """
-
     return Player(
         name=name,
         seasons=[],
-        true_BA=.25,
-        perc_singles=.7,
-        perc_doubles=.1,
-        perc_triples=.05,
-        perc_HR=.15,
-        perc_walk=.1,
+        true_BA=default_val_dict['H'] / default_val_dict['PA'],
+        perc_singles=default_val_dict['1B'] / default_val_dict['H'],
+        perc_doubles=default_val_dict['2B'] / default_val_dict['H'],
+        perc_triples=default_val_dict['3B'] / default_val_dict['H'],
+        perc_HR=default_val_dict['HR'] / default_val_dict['H'],
+        perc_walk=default_val_dict['BB'] / default_val_dict['PA'],
     )

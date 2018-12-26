@@ -5,6 +5,7 @@ from sim_utils.utils import *
 from collections import defaultdict
 import numpy as np
 import copy
+import argparse
 import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -23,8 +24,8 @@ def simulate_game(game):
     -------
 
     """
-    home_lineup = copy.deepcopy(game.home_team.lineup)
-    away_lineup = copy.deepcopy(game.away_team.lineup)
+    home_lineup = copy.copy(game.home_team.lineup)
+    away_lineup = copy.copy(game.away_team.lineup)
 
     while game.game_state.inning <= 9 or \
             game.game_state.score.home_team_score == \
@@ -70,19 +71,20 @@ def simulate_game(game):
                     curr_player.perc_HR
                 ]
             )
+
+        curr_player.update_curr_sim_stats(PA_result)
         game.game_state.update_state(PA_result)
 
     # game.print_team_score()
     if game.game_state.score.home_team_score > \
             game.game_state.score.away_team_score:
-        # print("HOME TEAM WINS!")
         game.home_team.num_wins += 1
     else:
-        # print("AWAY TEAM WINS!")
         game.away_team.num_wins += 1
 
     game.home_team.games_played += 1
     game.away_team.games_played += 1
+    game.reset()
 
 
 def simulate_season(schedule):
@@ -103,17 +105,31 @@ def simulate_season(schedule):
         simulate_game(game)
 
 
-if __name__ == '__main__':
+# TODO: Add player logging for each iteration / season
+#  want to see if player performance is accurate
+# Possible y-value in a modeling scenario: WAR / game played?
 
-    n_iterations = 10
 
+def sim():
+
+    parser = argparse.ArgumentParser(description="Simulate with given "
+                                                 "instructions")
+    parser.add_argument('--n', '--n_iterations', dest='n_iterations',
+                        type=int,
+                        help='number of iterations of complete seasons to '
+                             'simulate and average over',
+                        required=False,
+                        default=10)
+    args = parser.parse_args()
+
+    n_iterations = args.n_iterations
     team_wins_dict = defaultdict(lambda: 0, {})
     training_years = {2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017}
     roster_year = 2018
     schedule_year = 2018
     player_dict = defaultdict(lambda: None, {})
-    # TODO: as iterating over training years, get the default (avg) values for
-    #  every player parameters to be passed into the default player function
+    default_value_dict = defaultdict(lambda: 0, {})
+
     for train_year in training_years:
         batting_df = get_player_batting_df(train_year)
         for index, row in batting_df.iterrows():
@@ -122,6 +138,20 @@ if __name__ == '__main__':
             player_dict[row_player.name] = update_player(
                 player_dict[row_player.name], row_player)
 
+            # update default value dictionary
+            default_value_dict['PA'] += row['PA']
+            default_value_dict['H'] += row['H']
+            default_value_dict['2B'] += row['2B']
+            default_value_dict['3B'] += row['3B']
+            default_value_dict['HR'] += row['HR']
+            default_value_dict['1B'] += row['H'] - (
+                        row['2B'] + row['3B'] + row['HR'])
+            default_value_dict['BB'] += row['BB'] + row['IBB'] + row['HBP']
+
+    for key in default_value_dict:
+        default_value_dict[key] = default_value_dict[key] / \
+                                  (len(training_years) * 270)
+
     team_dict = {}
     roster_year_batting_df = get_player_batting_df(roster_year)
     for index, row in roster_year_batting_df.iterrows():
@@ -129,7 +159,8 @@ if __name__ == '__main__':
         player_name = row['Name']
         if player_team not in team_dict:
             team_dict[player_team] = Team(player_team)
-        team_dict[player_team].add_player(player_dict, player_name)
+        team_dict[player_team].add_player(player_dict, player_name,
+                                          default_value_dict)
 
     # sort lineups by .... true_BA?
     for team, value in team_dict.items():
@@ -149,6 +180,16 @@ if __name__ == '__main__':
         )
 
         for team_name, team in team_dict.items():
+            print(team_name, ': ', team.num_wins)
+
+
+        # players = [x for x in player_dict.items() if x[1]]
+        # sorted_players = sorted(players, key=lambda x: x[1].true_BA + x[1].perc_walk,
+        #                         reverse=True)
+        # pp.pprint([(x[0], x[1].to_dict()) for x in sorted_players][:30])
+        # return
+
+        for team_name, team in team_dict.items():
             team_wins = team.num_wins
             team_wins_dict[team_name] += team_wins
 
@@ -159,3 +200,6 @@ if __name__ == '__main__':
         team_wins_dict[key] = value / n_iterations
 
     pp.pprint(sorted(team_wins_dict.items(), key=lambda x: x[1], reverse=True))
+
+if __name__ == '__main__':
+    sim()

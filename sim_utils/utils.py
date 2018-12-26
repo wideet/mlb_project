@@ -69,7 +69,7 @@ def get_player_batting_df(year):
     df['Team Name'] = df['Tm'] \
         .apply(lambda x: abbreviations[x] if x in abbreviations else None)
     df['Name'] = df['Name'] \
-        .apply(lambda x: x.split('\\')[0]).replace('*', '').replace('#', '')
+        .apply(lambda x: x.split('\\')[0].replace('*', '').replace('#', ''))
 
     # only want 9 players who had the most plate appearances for that team
     roster_indices = list(df.groupby('Tm')['PA'].nlargest(9)
