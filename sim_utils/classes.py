@@ -110,7 +110,7 @@ class Team:
             new_player = create_default_player(p_name, def_dict)
             self.lineup.append(new_player)
 
-    def sort_lineup(self, key_func=lambda x: x.true_BA):
+    def sort_lineup(self, key_func=lambda x: x.true_BA+x.perc_walk):
         """
         Sort lineup by given attribute
         Parameters
@@ -162,6 +162,8 @@ class Game:
 
     def reset(self):
         self.game_state.reset()
+        self.home_team.sort_lineup()
+        self.away_team.sort_lineup()
 
 
 

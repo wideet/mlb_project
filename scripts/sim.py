@@ -161,7 +161,6 @@ def sim():
             team_dict[player_team] = Team(player_team)
         team_dict[player_team].add_player(player_dict, player_name,
                                           default_value_dict)
-
     # sort lineups by .... true_BA?
     for team, value in team_dict.items():
         value.sort_lineup()
@@ -180,16 +179,6 @@ def sim():
         )
 
         for team_name, team in team_dict.items():
-            print(team_name, ': ', team.num_wins)
-
-
-        # players = [x for x in player_dict.items() if x[1]]
-        # sorted_players = sorted(players, key=lambda x: x[1].true_BA + x[1].perc_walk,
-        #                         reverse=True)
-        # pp.pprint([(x[0], x[1].to_dict()) for x in sorted_players][:30])
-        # return
-
-        for team_name, team in team_dict.items():
             team_wins = team.num_wins
             team_wins_dict[team_name] += team_wins
 
@@ -200,6 +189,12 @@ def sim():
         team_wins_dict[key] = value / n_iterations
 
     pp.pprint(sorted(team_wins_dict.items(), key=lambda x: x[1], reverse=True))
+    top_team = sorted(team_wins_dict.items(), key=lambda x: x[1], reverse=True)[0][0]
+    for player in team_dict[top_team].lineup:
+        pp.pprint (player.name)
+        pp.pprint(player.curr_sim)
+        pp.pprint(player.to_dict())
+
 
 if __name__ == '__main__':
     sim()
